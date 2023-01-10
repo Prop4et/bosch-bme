@@ -13,27 +13,32 @@ endif()
 # Initialize the SDK
 pico_sdk_init()
 
-add_executable(forced_mode
+
+
+add_executable(${PROJECT_NAME}
     main.c
     )
 
-target_include_directories(forced_mode PRIVATE
+add_subdirectory(bme68x)
+add_subdirectory(bme_api)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # pull in common dependencies
 
-target_link_libraries(forced_mode 
-    pico_stdlib
-    hardware_i2c
+target_link_libraries(${PROJECT_NAME} 
     bme68x
     bme_api
+    pico_stdlib
+    hardware_i2c
 )
 
 #enable usb output
-pico_enable_stdio_usb(forced_mode 1)
-pico_enable_stdio_uart(forced_mode 0)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
+pico_enable_stdio_uart(${PROJECT_NAME} 0)
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(forced_mode)
+pico_add_extra_outputs(${PROJECT_NAME})
 
