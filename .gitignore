@@ -1,2 +1,5 @@
 /build
-/includes/bsec
+/includes/bsec/*.c
+/includes/bsec/*.h
+/includes/bsec/*.a
+/includes/bsec/*.lib
