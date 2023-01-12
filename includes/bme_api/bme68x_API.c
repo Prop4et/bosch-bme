@@ -13,7 +13,7 @@ void delay_us(uint32_t period, void *intf_ptr){
         sleep_ms(1);
 }
 
-void check_err(int8_t rslt, const char api_name[])
+void check_rslt_api(int8_t rslt, const char api_name[])
 {
     switch (rslt)
     {
@@ -38,6 +38,20 @@ void check_err(int8_t rslt, const char api_name[])
             break;
         case BME68X_W_NO_NEW_DATA:
             printf("API name [%s]  Warning [%d] : No new data found\r\n", api_name, rslt);
+            break;
+        default:
+            printf("API name [%s]  Error [%d] : Unknown error code\r\n", api_name, rslt);
+            break;
+    }
+}
+
+void check_rslt_bsec(bsec_library_return_t rslt, const char api_name[]){
+    switch (rslt)
+    {
+        case BSEC_OK:
+            break;
+        case BSEC_E_DOSTEPS_INVALIDINPUT:
+            printf("API name [%s]  Error [%d] : dev_id passed to bsec_do_steps() invalid range or virtual\r\n", api_name, rslt);
             break;
         default:
             printf("API name [%s]  Error [%d] : Unknown error code\r\n", api_name, rslt);

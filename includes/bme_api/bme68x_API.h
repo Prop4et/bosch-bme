@@ -1,4 +1,5 @@
 #include "../bme68x/bme68x_defs.h"
+#include "../bsec/bsec_datatypes.h"
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 /*I2C pinout*/
@@ -6,7 +7,7 @@
 #define SCL_PIN 9
 
 /**
- * @brief function to write I2C 
+ * @brief function to read I2C 
  * 
  * @param reg register to write to
  * @param buf data buffer
@@ -17,8 +18,8 @@
  * @retval 0 for Success
  * @retval -1 Failure
  */
-
 BME68X_INTF_RET_TYPE bme_read(uint8_t reg, uint8_t *buf, uint32_t nbytes, void *intf_ptr);
+
 /**
  * @brief function to write I2C 
  * 
@@ -32,13 +33,22 @@ BME68X_INTF_RET_TYPE bme_read(uint8_t reg, uint8_t *buf, uint32_t nbytes, void *
  * @retval -1 Failure
  */
 BME68X_INTF_RET_TYPE bme_write(uint8_t reg, const uint8_t *buf, uint32_t nbytes, void *intf_ptr);
+
 /**
  * @brief signals when there's an error
  * 
  * @param rslt code 
  * @param api_name message
  */
-void check_err(int8_t rslt, const char api_name[]);
+void check_rslt_api(int8_t rslt, const char api_name[]);
+
+/**
+ * @brief checks the result of the bsec operations
+ * 
+ * @param rslt code
+ * @param api_name message
+*/
+void check_rslt_bsec(bsec_library_return_t rslt, const char api_name[]);
 
 /**
  * @brief replaces the interface init by the Bosch API
