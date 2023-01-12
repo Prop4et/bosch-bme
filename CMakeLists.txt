@@ -13,9 +13,8 @@ endif()
 # Initialize the SDK
 pico_sdk_init()
 
-#add_subdirectory(bme68x)
-#add_subdirectory(bme_api)
 add_subdirectory(includes)
 add_subdirectory(forced_mode)
 add_subdirectory(parallel_mode)
 add_subdirectory(i2c)
+add_subdirectory(bsec_use)

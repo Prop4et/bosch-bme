@@ -1,8 +1,8 @@
-add_executable(forced_mode
-    forced_mode.c
+add_executable(bsec_use
+    bsec_use.c
     )
 
-target_include_directories(forced_mode PRIVATE
+target_include_directories(bsec_use PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
@@ -13,7 +13,7 @@ add_library(algobsec STATIC IMPORTED)
 set_property(TARGET algobsec PROPERTY IMPORTED_LOCATION /home/francesco/pico/pico-bosch/includes/bsec/libalgobsec.a)
 
 
-target_link_libraries(forced_mode 
+target_link_libraries(bsec_use 
     bme68x
     bme_api
     bsec
@@ -24,9 +24,9 @@ target_link_libraries(forced_mode
 
 
 #enable usb output
-pico_enable_stdio_usb(forced_mode 1)
-pico_enable_stdio_uart(forced_mode 0)
+pico_enable_stdio_usb(bsec_use 1)
+pico_enable_stdio_uart(bsec_use 0)
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(forced_mode)
+pico_add_extra_outputs(bsec_use)
 
