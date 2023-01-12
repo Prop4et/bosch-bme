@@ -92,14 +92,6 @@ int main() {
 
     /*
         Set oversampling for measurements
-        1x oversampling for humidity
-        16x oversampling for pressure
-        2x oversampling for temperature
-        conf.os_hum = BME68X_OS_1X;
-        conf.os_pres = BME68X_OS_16X;
-        conf.os_temp = BME68X_OS_2X;
-        conf.filter = BME68X_FILTER_OFF;
-        conf.odr = BME68X_ODR_NONE;
     */
 
     conf.os_hum = conf_bsec.humidity_oversampling;
@@ -111,11 +103,6 @@ int main() {
     /*  
         Set the remaining gas sensor settings and link the heating profile 
         enable the heater plate
-        set the temperature plate to 300°C
-        set the duration to 100 ms
-        heatr_conf.enable = BME68X_ENABLE;
-        heatr_conf.heatr_temp = 300;
-        heatr_conf.heatr_dur = 100;
     */
 
     heatr_conf.enable = conf_bsec.run_gas;
