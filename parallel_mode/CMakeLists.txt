@@ -1,34 +1,14 @@
-cmake_minimum_required(VERSION 3.12)
-# Pull in SDK (must be before project)
-include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
-
-project(parallel_mode C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-
-if (PICO_SDK_VERSION_STRING VERSION_LESS "1.3.0")
-    message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.3.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
-endif()
-
-# Initialize the SDK
-pico_sdk_init()
-
-
-
-add_executable(${PROJECT_NAME}
+add_executable(parallel_mode
     parallel_mode.c
     )
 
-add_subdirectory(bme68x)
-add_subdirectory(bme_api)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(parallel_mode PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
 )
 
 # pull in common dependencies
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(parallel_mode 
     bme_api
     bme68x
     pico_stdlib
@@ -36,9 +16,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 #enable usb output
-pico_enable_stdio_usb(${PROJECT_NAME} 1)
-pico_enable_stdio_uart(${PROJECT_NAME} 0)
+pico_enable_stdio_usb(parallel_mode 1)
+pico_enable_stdio_uart(parallel_mode 0)
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(${PROJECT_NAME})
+pico_add_extra_outputs(parallel_mode)
 

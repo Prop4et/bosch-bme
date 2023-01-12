@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "bme68x_defs.h": "c",
-        "bme68x_api.h": "c"
-    }
-}

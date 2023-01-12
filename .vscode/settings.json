@@ -1,6 +1,6 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/parallel_mode",
     "files.associations": {
-        "bme68x_api.h": "c"
+        "bme68x_api.h": "c",
+        "bme68x.h": "c"
     }
 }

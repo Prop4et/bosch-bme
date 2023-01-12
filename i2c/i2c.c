@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-#include "bme68x/bme68x_defs.h"
+#include "../includes/bme68x/bme68x_defs.h"
 
 int reg_write(i2c_inst_t *i2c, const uint addr, const uint8_t reg, uint8_t *buf, const uint8_t nbytes);
 

@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-#include "bme68x/bme68x_defs.h"
-#include "bme68x/bme68x.h"
-#include "bme_api/bme68x_API.h"
+#include "../includes/bme68x/bme68x_defs.h"
+#include "../includes/bme68x/bme68x.h"
+#include "../includes/bme_api/bme68x_API.h"
 
 int main() {
 

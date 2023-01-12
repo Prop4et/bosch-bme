@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "common.h": "c",
-        "bme68x_defs.h": "c",
-        "i2c.h": "c",
-        "stdlib.h": "c"
-    },
-    "C_Cpp.errorSquiggles": "disabled"
-}
