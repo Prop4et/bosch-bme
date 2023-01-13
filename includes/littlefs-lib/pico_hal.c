@@ -19,7 +19,8 @@
 
 #include "pico_hal.h"
 
-#define FS_SIZE (256 * 1024)
+//#define FS_SIZE (256 * 1024)
+#define FS_SIZE (512 * 1024)
 
 static int pico_hal_read(lfs_block_t block, lfs_off_t off, void* buffer, lfs_size_t size);
 static int pico_hal_prog(lfs_block_t block, lfs_off_t off, const void* buffer, lfs_size_t size);
