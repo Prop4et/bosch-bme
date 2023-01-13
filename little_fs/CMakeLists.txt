@@ -8,6 +8,7 @@ target_include_directories(little_fs PRIVATE
 
 # pull in common dependencies
 target_link_libraries(little_fs 
+    littlefs-lib
     pico_stdlib
 )
 
