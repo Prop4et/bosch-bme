@@ -118,7 +118,7 @@ int main() {
     uint8_t n_fields;
     uint32_t del_period;
     uint64_t time_us;
-    //while(1){
+    while(1){
         rslt_api = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
         check_rslt_api(rslt_api, "bme68x_set_op_mode");
 
@@ -154,39 +154,43 @@ int main() {
             for(int i = 0; i < n_output; i++){
                 switch(output[i].sensor_id){
                     case BSEC_OUTPUT_IAQ:
-                        printf("IAQ \t|\t Accuracy\n");
-                        printf("%.2f \t|\t %d \n", output[i].signal, output[i].accuracy);
+                        printf("IAQ\t| Accuracy\n");
+                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_STATIC_IAQ:
                         printf("STATIC IAQ\n");
                         break;
                     case BSEC_OUTPUT_CO2_EQUIVALENT:
-                        printf("CO2 \t|\t Accuracy\n");
-                        printf("%.2f \t|\t %d \n", output[i].signal, output[i].accuracy);
+                        printf("CO2[ppm]\t| Accuracy\n");
+                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_RAW_TEMPERATURE:
-                        printf("Temperature: %.2f\n", output[i].signal);
+                            printf("Temperature[°C]\t| Accuracy\n");
+                            printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_RAW_HUMIDITY:
-                        printf("Humidity: %.2f\n", output[i].signal);
+                            printf("Humidity[%%rH]\t| Accuracy\n");
+                            printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_RAW_PRESSURE:
-                        printf("Pressure: %.2f\n", output[i].signal);
+                            printf("Pressure[atm]\t| Accuracy\n");
+                            printf("%.2f\t| %d \n", output[i].signal/101325, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_RAW_GAS:
-                        printf("[Ohm] \t|\t Accuracy\n");
-                        printf("%.2f \t|\t %d \n", output[i].signal, output[i].accuracy);
+                        printf("[Ohm]\t| Accuracy\n");
+                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
                         break;
                     case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
                         printf("VOC\n");
                         break;
                     }
             }
+            printf("\n");
         }
 
         //sensor goes automatically to sleep
         //it means i should save the configuration somewhere and load it back probably
-        //sleep_ms(30000);
-    //}
+        sleep_ms(5000);
+    }
 
 }
