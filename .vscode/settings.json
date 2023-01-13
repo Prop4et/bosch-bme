@@ -3,7 +3,8 @@
         "bme68x_api.h": "c",
         "bme68x.h": "c",
         "bsec_datatypes.h": "c",
-        "bsec_interface.h": "c"
-
+        "bsec_interface.h": "c",
+        "stdio.h": "c",
+        "bsec_use.h": "c"
     }
 }
