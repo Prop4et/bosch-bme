@@ -1,7 +1,7 @@
 # bosch-bme
 pico integration with bosch bme sensor with different examples 
 
-The worflow to make everything work consists in installing the toolchain first, following the getting started with Pico [guide](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) provided by Raspberry. 
+The worflow to make everything work consists in installing the toolchain first, following the getting started with Pico [guide](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) provided by Raspberry.   
 If working on Linux:
 - everything works fine, you may want to add the export command to your /etc/profile (and all the other files if needed) to permanently create the PICO_SDK_PATH environment variable and avoid exporting that path everytime a new terminal is opened
 Working on Windows with VSC:
