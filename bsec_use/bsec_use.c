@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include "bsec_use.h"
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 #include "../includes/bme68x/bme68x_defs.h"
@@ -6,9 +6,14 @@
 #include "../includes/bme_api/bme68x_API.h"
 #include "../includes/bsec/bsec_datatypes.h"
 #include "../includes/bsec/bsec_interface.h"
+#include "../includes/littlefs-lib/pico_hal.h"
+
 
 int main() {
-
+    /*
+        FILESYSTEM VARIABLES
+    */
+    lfs_size_t rslt_fs;
     /*
         BSEC VARIABLES
     */
@@ -26,6 +31,20 @@ int main() {
     uint8_t n_input = 4;
     bsec_output_t output[5];
     uint8_t n_output=5;
+    //state handling
+    uint8_t serialized_state[BSEC_MAX_STATE_BLOB_SIZE];
+    uint32_t n_serialized_state_max = BSEC_MAX_STATE_BLOB_SIZE;
+    uint32_t n_serialized_state = BSEC_MAX_STATE_BLOB_SIZE;
+    uint8_t work_buffer_state[BSEC_MAX_WORKBUFFER_SIZE];
+    uint32_t n_work_buffer_size = BSEC_MAX_WORKBUFFER_SIZE;
+    //configuration on shut down
+    uint8_t serialized_settings[BSEC_MAX_PROPERTY_BLOB_SIZE];
+    uint32_t n_serialized_settings_max = BSEC_MAX_PROPERTY_BLOB_SIZE;
+    uint8_t work_buffer[BSEC_MAX_WORKBUFFER_SIZE];
+    uint32_t n_work_buffer = BSEC_MAX_WORKBUFFER_SIZE;
+    uint32_t n_serialized_settings = 0;
+    //
+    uint64_t time_us;
     /*
         BME API VARIABLES
     */
@@ -35,12 +54,18 @@ int main() {
     struct bme68x_heatr_conf heatr_conf;
     uint16_t sample_count = 1;
     int8_t rslt_api;
+    uint8_t n_fields;
+    uint32_t del_period;
+
     stdio_init_all();
-    
     sleep_ms(10000);
     /*
         INITIALIZATION BSEC LIBRARY
     */
+    printf("...mounting FS\n");
+    if (pico_mount(false) != LFS_ERR_OK) {
+        printf("Error mounting FS\n");
+    }
 
     printf("...initialization BSEC\n");
     rslt_bsec = bsec_init();
@@ -57,6 +82,22 @@ int main() {
     requested_virtual_sensors[4].sensor_id = BSEC_OUTPUT_CO2_EQUIVALENT;
     requested_virtual_sensors[4].sample_rate = BSEC_SAMPLE_RATE_LP;
     
+    //read state to get the previous state and avoid restarting everything
+    int state_file = pico_open(state_file_name, LFS_O_CREAT | LFS_O_RDWR);
+    check_fs_error(state_file, "Error opening state file"); 
+
+    rslt_fs = pico_read(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
+    check_fs_error(state_file, "Error while reading state file");  
+    
+    //if there is a state file saved somewhere
+    if(rslt_fs > 0){
+        printf("...resuming the state\n");
+        rslt_bsec = bsec_set_state(serialized_state, n_serialized_state, work_buffer_state, n_work_buffer_size);
+        check_rslt_bsec(rslt_bsec, "BSEC_SET_STATE");
+    }
+
+    rslt_fs = pico_rewind(state_file);
+    check_fs_error(state_file, "Error while rewinding state file");
 
     // Call bsec_update_subscription() to enable/disable the requested virtual sensors
     rslt_bsec = bsec_update_subscription(requested_virtual_sensors, n_requested_virtual_sensors,
@@ -71,16 +112,16 @@ int main() {
     */
     printf("...initialization BME688\n");
     bme_interface_init(&bme, BME68X_I2C_INTF);
-    uint8_t data_id[8];
+    uint8_t data_id;
 
     //read device id after init to see if everything works for now and to check that the device communicates with I2C
-    bme.read(BME68X_REG_CHIP_ID, data_id, 1, bme.intf_ptr);
-    if(data_id[0] != BME68X_CHIP_ID){
+    bme.read(BME68X_REG_CHIP_ID, &data_id, 1, bme.intf_ptr);
+    if(data_id != BME68X_CHIP_ID){
         printf("Cannot communicate with BME688\n");
-        printf("CHIP_ID: %x\t ID_READ: %x\n", BME68X_CHIP_ID, data_id[0]);
+        printf("CHIP_ID: %x\t ID_READ: %x\n", BME68X_CHIP_ID, data_id);
     }
     else{
-        bme.chip_id = data_id[0];
+        bme.chip_id = data_id;
         printf("Connection valid, DEVICE_ID: %x\n", bme.chip_id);
     }
 
@@ -115,10 +156,8 @@ int main() {
     rslt_api = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatr_conf, &bme);
     check_rslt_api(rslt_api, "bme68x_set_heatr_conf");
 
-    uint8_t n_fields;
-    uint32_t del_period;
-    uint64_t time_us;
-    while(1){
+    uint16_t loops = 800;
+    while(loops > 0){
         rslt_api = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
         check_rslt_api(rslt_api, "bme68x_set_op_mode");
 
@@ -152,45 +191,74 @@ int main() {
 
         if(rslt_bsec == BSEC_OK){
             for(int i = 0; i < n_output; i++){
-                switch(output[i].sensor_id){
-                    case BSEC_OUTPUT_IAQ:
-                        printf("IAQ\t| Accuracy\n");
-                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_STATIC_IAQ:
-                        printf("STATIC IAQ\n");
-                        break;
-                    case BSEC_OUTPUT_CO2_EQUIVALENT:
-                        printf("CO2[ppm]\t| Accuracy\n");
-                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_RAW_TEMPERATURE:
-                            printf("Temperature[°C]\t| Accuracy\n");
-                            printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_RAW_HUMIDITY:
-                            printf("Humidity[%%rH]\t| Accuracy\n");
-                            printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_RAW_PRESSURE:
-                            printf("Pressure[atm]\t| Accuracy\n");
-                            printf("%.2f\t| %d \n", output[i].signal/101325, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_RAW_GAS:
-                        printf("[Ohm]\t| Accuracy\n");
-                        printf("%.2f\t| %d \n", output[i].signal, output[i].accuracy);
-                        break;
-                    case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
-                        printf("VOC\n");
-                        break;
-                    }
+                print_results(output[i].sensor_id, output[i].signal, output[i].accuracy);
             }
             printf("\n");
         }
-
+        loops -= 1;
         //sensor goes automatically to sleep
-        //it means i should save the configuration somewhere and load it back probably
         sleep_ms(5000);
+        
     }
 
+    rslt_bsec = bsec_get_state(0, serialized_state, n_serialized_state_max, work_buffer_state, n_work_buffer_size, &n_serialized_state);
+    check_rslt_bsec(rslt_bsec, "BSEC_GET_STATE");
+
+    rslt_fs = pico_write(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
+    check_fs_error(rslt_fs, "Error writing the file");
+    pico_fflush(state_file);
+	
+    int pos = pico_lseek(state_file, 0, LFS_SEEK_CUR);
+
+    rslt_fs = pico_close(state_file);
+    check_fs_error(rslt_fs, "Error closing the file");
+
+    sleep_ms(1000);
+    pico_unmount();
+    printf("Written %d byte for file %s\n", pos, state_file);
+
+    /*rslt_bsec = bsec_get_configuration(0, serialized_settings, n_serialized_settings_max, work_buffer, n_work_buffer, &n_serialized_settings);
+    check_rslt_bsce(rslt_bsec, "BSEC_GET_CONFIGURATION"); */  
+
+}
+
+void print_results(int id, float signal, int accuracy){
+    switch(id){
+        case BSEC_OUTPUT_IAQ:
+            printf("IAQ\t| Accuracy\n");
+            printf("%.2f\t| %d \n", signal, accuracy);
+            break;
+        case BSEC_OUTPUT_STATIC_IAQ:
+            printf("STATIC IAQ\n");
+            break;
+        case BSEC_OUTPUT_CO2_EQUIVALENT:
+            printf("CO2[ppm]\t| Accuracy\n");
+            printf("%.2f\t| %d \n", signal, accuracy);
+            break;
+        case BSEC_OUTPUT_RAW_TEMPERATURE:
+                printf("Temperature[°C]\t| Accuracy\n");
+                printf("%.2f\t| %d \n", signal, accuracy);
+            break;
+        case BSEC_OUTPUT_RAW_HUMIDITY:
+                printf("Humidity[%%rH]\t| Accuracy\n");
+                printf("%.2f\t| %d \n", signal, accuracy);
+            break;
+        case BSEC_OUTPUT_RAW_PRESSURE:
+                printf("Pressure[atm]\t| Accuracy\n");
+                printf("%.2f\t| %d \n", signal/101325, accuracy);
+            break;
+        case BSEC_OUTPUT_RAW_GAS:
+            printf("[Ohm]\t| Accuracy\n");
+            printf("%.2f\t| %d \n", signal, accuracy);
+            break;
+        case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
+            printf("VOC\n");
+            break;
+    }
+}
+
+void check_fs_error(int rslt, char msg[]){
+    if(rslt < 0){
+        printf("FS error %s\n", msg);
+    }
 }
