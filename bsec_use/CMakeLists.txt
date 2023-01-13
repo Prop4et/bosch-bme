@@ -1,5 +1,6 @@
 add_executable(bsec_use
     bsec_use.c
+    bsec_use.h
     )
 
 target_include_directories(bsec_use PRIVATE
@@ -20,6 +21,7 @@ target_link_libraries(bsec_use
     pico_stdlib
     hardware_i2c
     algobsec
+    littlefs-lib
 )
 
 
