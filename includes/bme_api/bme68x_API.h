@@ -6,6 +6,9 @@
 #define SDA_PIN 8
 #define SCL_PIN 9
 
+void blink();
+
+
 /**
  * @brief function to read I2C 
  * 

@@ -57,13 +57,19 @@ int main() {
     uint8_t n_fields;
     uint32_t del_period;
 
+    /*
+        OTHER VARIABLES
+    */
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
     stdio_init_all();
     sleep_ms(10000);
     /*
         INITIALIZATION BSEC LIBRARY
     */
     printf("...mounting FS\n");
-    if (pico_mount(false) != LFS_ERR_OK) {
+    if (pico_mount(true) != LFS_ERR_OK) {
         printf("Error mounting FS\n");
     }
 
@@ -108,7 +114,7 @@ int main() {
     check_rslt_bsec(rslt_bsec, "BSEC_SENSOR_CONTROL");
 
     /*
-        INITIALIZATION BME CONFIGURATINO
+        INITIALIZATION BME CONFIGURATION
     */
     printf("...initialization BME688\n");
     bme_interface_init(&bme, BME68X_I2C_INTF);
@@ -156,8 +162,10 @@ int main() {
     rslt_api = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatr_conf, &bme);
     check_rslt_api(rslt_api, "bme68x_set_heatr_conf");
 
-    uint16_t loops = 800;
-    while(loops > 0){
+    uint16_t loops = 3000;
+    absolute_time_t from = get_absolute_time();
+    absolute_time_t to = get_absolute_time();
+    while(absolute_time_diff_us(from, to) < 10800000000){
         rslt_api = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
         check_rslt_api(rslt_api, "bme68x_set_op_mode");
 
@@ -197,8 +205,8 @@ int main() {
         }
         loops -= 1;
         //sensor goes automatically to sleep
-        sleep_ms(5000);
-        
+        sleep_ms(10000);
+        to = get_absolute_time();
     }
 
     rslt_bsec = bsec_get_state(0, serialized_state, n_serialized_state_max, work_buffer_state, n_work_buffer_size, &n_serialized_state);
@@ -216,6 +224,7 @@ int main() {
     sleep_ms(1000);
     pico_unmount();
     printf("Written %d byte for file %s\n", pos, state_file);
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
     /*rslt_bsec = bsec_get_configuration(0, serialized_settings, n_serialized_settings_max, work_buffer, n_work_buffer, &n_serialized_settings);
     check_rslt_bsce(rslt_bsec, "BSEC_GET_CONFIGURATION"); */  
@@ -260,5 +269,6 @@ void print_results(int id, float signal, int accuracy){
 void check_fs_error(int rslt, char msg[]){
     if(rslt < 0){
         printf("FS error %s\n", msg);
+        blink();
     }
 }
