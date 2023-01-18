@@ -11,7 +11,8 @@ target_include_directories(bsec_use PRIVATE
 SET_TARGET_PROPERTIES(bsec PROPERTIES LINKER_LANGUAGE C)
 
 add_library(algobsec STATIC IMPORTED)
-set_property(TARGET algobsec PROPERTY IMPORTED_LOCATION /home/francesco/pico/pico-bosch/includes/bsec/libalgobsec.a)
+#set_property(TARGET algobsec PROPERTY IMPORTED_LOCATION /home/francesco/pico/pico-bosch/includes/bsec/libalgobsec.a) #linux
+set_property(TARGET algobsec PROPERTY IMPORTED_LOCATION E:/francesco/UNI/tirocinio_curriculare/code/pico/bosch-bme/includes/bsec/libalgobsec.a) #windows
 
 
 target_link_libraries(bsec_use 
