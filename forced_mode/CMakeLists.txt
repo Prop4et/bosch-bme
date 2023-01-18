@@ -15,7 +15,6 @@ target_link_libraries(forced_mode
     bsec
     pico_stdlib
     hardware_i2c
-    algobsec
 )
 
 
