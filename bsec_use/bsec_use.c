@@ -66,7 +66,9 @@ int main() {
     stdio_init_all();
     sleep_ms(10000);
     /*
-        INITIALIZATION BSEC LIBRARY
+        little FS set up, it mounts a file system on the flash memory to save the state file
+        if set to true it formats everything
+        if set to false it keeps the files as they were
     */
     printf("...mounting FS\n");
     if (pico_mount(true) != LFS_ERR_OK) {
@@ -76,7 +78,9 @@ int main() {
     printf("...initialization BSEC\n");
     rslt_bsec = bsec_init();
     check_rslt_bsec(rslt_bsec, "BSEC_INIT"); 
-
+    /*
+        INITIALIZATION BSEC LIBRARY
+    */
     requested_virtual_sensors[0].sensor_id = BSEC_OUTPUT_IAQ;
     requested_virtual_sensors[0].sample_rate = BSEC_SAMPLE_RATE_LP;
     requested_virtual_sensors[1].sensor_id = BSEC_OUTPUT_RAW_TEMPERATURE;
@@ -95,13 +99,13 @@ int main() {
     rslt_fs = pico_read(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
     check_fs_error(state_file, "Error while reading state file");  
     
-    //if there is a state file saved somewhere
+    //if there is a state file saved somewhere it loads the variable back
     if(rslt_fs > 0){
         printf("...resuming the state\n");
         rslt_bsec = bsec_set_state(serialized_state, n_serialized_state, work_buffer_state, n_work_buffer_size);
         check_rslt_bsec(rslt_bsec, "BSEC_SET_STATE");
     }
-
+    
     rslt_fs = pico_rewind(state_file);
     check_fs_error(state_file, "Error while rewinding state file");
 
@@ -162,10 +166,8 @@ int main() {
     rslt_api = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatr_conf, &bme);
     check_rslt_api(rslt_api, "bme68x_set_heatr_conf");
 
-    uint16_t loops = 3000;
-    absolute_time_t from = get_absolute_time();
-    absolute_time_t to = get_absolute_time();
-    while(absolute_time_diff_us(from, to) < 10800000000){
+    uint16_t loops = 30;
+    while(loops >= 0){
         rslt_api = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
         check_rslt_api(rslt_api, "bme68x_set_op_mode");
 
@@ -182,6 +184,9 @@ int main() {
                 check_rslt_api(BME68X_E_SELF_TEST, "bme68x_get_data_mask");
             }
         }
+        /*
+            input variables for the BSEC API
+        */
         input[0].sensor_id = BSEC_INPUT_GASRESISTOR;
         input[0].signal = data.gas_resistance;
         input[0].time_stamp= time_us;
@@ -206,7 +211,6 @@ int main() {
         loops -= 1;
         //sensor goes automatically to sleep
         sleep_ms(10000);
-        to = get_absolute_time();
     }
 
     rslt_bsec = bsec_get_state(0, serialized_state, n_serialized_state_max, work_buffer_state, n_work_buffer_size, &n_serialized_state);
@@ -217,13 +221,13 @@ int main() {
     pico_fflush(state_file);
 	
     int pos = pico_lseek(state_file, 0, LFS_SEEK_CUR);
+    printf("Written %d byte for file %s\n", pos, state_file);
 
     rslt_fs = pico_close(state_file);
     check_fs_error(rslt_fs, "Error closing the file");
 
     sleep_ms(1000);
     pico_unmount();
-    printf("Written %d byte for file %s\n", pos, state_file);
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
     /*rslt_bsec = bsec_get_configuration(0, serialized_settings, n_serialized_settings_max, work_buffer, n_work_buffer, &n_serialized_settings);
@@ -231,34 +235,35 @@ int main() {
 
 }
 
+//utility to print results
 void print_results(int id, float signal, int accuracy){
     switch(id){
         case BSEC_OUTPUT_IAQ:
-            printf("IAQ\t| Accuracy\n");
-            printf("%.2f\t| %d \n", signal, accuracy);
+            printf("IAQ\t | Accuracy\n");
+            printf("%.2f\t | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_STATIC_IAQ:
             printf("STATIC IAQ\n");
             break;
         case BSEC_OUTPUT_CO2_EQUIVALENT:
-            printf("CO2[ppm]\t| Accuracy\n");
-            printf("%.2f\t| %d \n", signal, accuracy);
+            printf("CO2[ppm]\t | Accuracy\n");
+            printf("%.2f\t | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_RAW_TEMPERATURE:
-                printf("Temperature[°C]\t| Accuracy\n");
-                printf("%.2f\t| %d \n", signal, accuracy);
+                printf("Temperature[°C]\t | Accuracy\n");
+                printf("%.2f\t | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_RAW_HUMIDITY:
-                printf("Humidity[%%rH]\t| Accuracy\n");
-                printf("%.2f\t| %d \n", signal, accuracy);
+                printf("Humidity[%%rH]\t | Accuracy\n");
+                printf("%.2f\t | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_RAW_PRESSURE:
-                printf("Pressure[atm]\t| Accuracy\n");
-                printf("%.2f\t| %d \n", signal/101325, accuracy);
+                printf("Pressure[atm]\t | Accuracy\n");
+                printf("%.2f\t | %d \n", signal/101325, accuracy);
             break;
         case BSEC_OUTPUT_RAW_GAS:
-            printf("[Ohm]\t| Accuracy\n");
-            printf("%.2f\t| %d \n", signal, accuracy);
+            printf("[Ohm]\t | Accuracy\n");
+            printf("%.2f\t | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
             printf("VOC\n");
