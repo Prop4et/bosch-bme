@@ -1,6 +1,6 @@
 # bsec_use
 this folder contains:
-- the CMakeLists.txt used to compile the executable with cmake
+- the CMakeLists.txt used to compile the executable with cmake, change the libalgobsec.a path
 - bsec_use.c that is the executable
 --- ---
 The bsec_use.c file is continuosly evolving with new functions to finally get to a point where it could be considered complete with a full set of functionalities.  
