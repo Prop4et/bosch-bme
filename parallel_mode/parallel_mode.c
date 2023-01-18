@@ -43,10 +43,10 @@ int main() {
     
     //initialize the structure with all the parameters by reading from the registers
     rslt = bme68x_init(&bme);
-    check_err(rslt, "INIT");
+    check_rslt_api(rslt, "INIT");
 
     rslt = bme68x_get_conf(&conf, &bme);
-    check_err(rslt, "bme68x_get_conf");
+    check_rslt_api(rslt, "bme68x_get_conf");
 
     /*
         Set oversampling for measurements
@@ -61,7 +61,7 @@ int main() {
     conf.odr = BME68X_ODR_NONE;
 
     rslt = bme68x_set_conf(&conf, &bme);
-    check_err(rslt, "bme68x_set_conf");
+    check_rslt_api(rslt, "bme68x_set_conf");
 
     /*  
         Set the remaining gas sensor settings and link the heating profile 
@@ -79,11 +79,11 @@ int main() {
     heatr_conf.profile_len = 10;
 
     rslt = bme68x_set_heatr_conf(BME68X_PARALLEL_MODE, &heatr_conf, &bme);
-    check_err(rslt, "bme68x_set_heatr_conf");
+    check_rslt_api(rslt, "bme68x_set_heatr_conf");
 
     
     rslt = bme68x_set_op_mode(BME68X_PARALLEL_MODE, &bme); 
-    check_err(rslt, "bme68x_set_op_mode");
+    check_rslt_api(rslt, "bme68x_set_op_mode");
 
     printf("Print parallel mode data if mask for new data(0x80), gas measurement(0x20) and heater stability(0x10) are set\n\n");
     sleep_ms(2);
@@ -98,7 +98,7 @@ int main() {
         bme.delay_us(del_period, bme.intf_ptr);
 
         rslt = bme68x_get_data(BME68X_PARALLEL_MODE, data, &n_fields, &bme);
-        check_err(rslt, "bme68x_get_data");
+        check_rslt_api(rslt, "bme68x_get_data");
         
         if (rslt == BME68X_OK){
             for (uint8_t i = 0; i < n_fields; i++){

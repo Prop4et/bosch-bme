@@ -36,7 +36,7 @@ int main() {
     
     //initialize the structure with all the parameters by reading from the registers
     rslt = bme68x_init(&bme);
-    check_err(rslt, "INIT");
+    check_rslt_api(rslt, "INIT");
 
     /*
         Set oversampling for measurements
@@ -62,29 +62,29 @@ int main() {
 
     
     rslt = bme68x_set_conf(&conf, &bme);
-    check_err(rslt, "bme68x_set_conf");
+    check_rslt_api(rslt, "bme68x_set_conf");
 
     rslt = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatr_conf, &bme);
-    check_err(rslt, "bme68x_set_heatr_conf");
+    check_rslt_api(rslt, "bme68x_set_heatr_conf");
 
     uint8_t n_fields;
     uint32_t del_period;
 
     while(1){
         rslt = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
-        check_err(rslt, "bme68x_set_op_mode");
+        check_rslt_api(rslt, "bme68x_set_op_mode");
 
         del_period = bme68x_get_meas_dur(BME68X_FORCED_MODE, &conf, &bme) + (heatr_conf.heatr_dur * 1000);
 
         bme.delay_us(del_period, bme.intf_ptr);
 
         rslt = bme68x_get_data(BME68X_FORCED_MODE, &data, &n_fields, &bme);
-        check_err(rslt, "bme68x_get_data");
+        check_rslt_api(rslt, "bme68x_get_data");
         
         if (rslt == BME68X_OK){
             if (! ((data.idac != 0x00) && (data.idac != 0xFF) ||
                 (data.status & BME68X_GASM_VALID_MSK))){
-                check_err(BME68X_E_SELF_TEST, "bme68x_get_data");
+                check_rslt_api(BME68X_E_SELF_TEST, "bme68x_get_data");
             }
         }
         printf("T: %.2f degC\n", data.temperature);
