@@ -9,10 +9,6 @@ target_include_directories(forced_mode PRIVATE
 # pull in common dependencies
 SET_TARGET_PROPERTIES(bsec PROPERTIES LINKER_LANGUAGE C)
 
-add_library(algobsec STATIC IMPORTED)
-set_property(TARGET algobsec PROPERTY IMPORTED_LOCATION /home/francesco/pico/pico-bosch/includes/bsec/libalgobsec.a)
-
-
 target_link_libraries(forced_mode 
     bme68x
     bme_api
