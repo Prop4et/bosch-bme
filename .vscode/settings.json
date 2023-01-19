@@ -5,6 +5,8 @@
         "bsec_datatypes.h": "c",
         "bsec_interface.h": "c",
         "stdio.h": "c",
-        "bsec_use.h": "c"
-    }
+        "bsec_use.h": "c",
+        "bme68x_defs.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }

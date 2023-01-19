@@ -1,7 +1,6 @@
 #include "bsec_use.h"
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
-#include "../includes/bme68x/bme68x_defs.h"
 #include "../includes/bme68x/bme68x.h"
 #include "../includes/bme_api/bme68x_API.h"
 #include "../includes/bsec/bsec_datatypes.h"
@@ -64,15 +63,17 @@ int main() {
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
     stdio_init_all();
-    sleep_ms(10000);
+    sleep_ms(5000);
     /*
         little FS set up, it mounts a file system on the flash memory to save the state file
         if set to true it formats everything
         if set to false it keeps the files as they were
     */
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
     printf("...mounting FS\n");
     if (pico_mount(true) != LFS_ERR_OK) {
         printf("Error mounting FS\n");
+        blink();
     }
 
     printf("...initialization BSEC\n");
@@ -93,7 +94,7 @@ int main() {
     requested_virtual_sensors[4].sample_rate = BSEC_SAMPLE_RATE_LP;
     
     //read state to get the previous state and avoid restarting everything
-    int state_file = pico_open(state_file_name, LFS_O_CREAT | LFS_O_RDWR);
+    int state_file = pico_open(state_file_name, LFS_O_CREAT | LFS_O_RDONLY);
     check_fs_error(state_file, "Error opening state file"); 
 
     rslt_fs = pico_read(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
@@ -108,6 +109,8 @@ int main() {
     
     rslt_fs = pico_rewind(state_file);
     check_fs_error(state_file, "Error while rewinding state file");
+    pico_unmount();
+    gpio_put(PICO_DEFAULT_LED_PIN, 0);
 
     // Call bsec_update_subscription() to enable/disable the requested virtual sensors
     rslt_bsec = bsec_update_subscription(requested_virtual_sensors, n_requested_virtual_sensors,
@@ -128,7 +131,7 @@ int main() {
     bme.read(BME68X_REG_CHIP_ID, &data_id, 1, bme.intf_ptr);
     if(data_id != BME68X_CHIP_ID){
         printf("Cannot communicate with BME688\n");
-        printf("CHIP_ID: %x\t ID_READ: %x\n", BME68X_CHIP_ID, data_id);
+        printf("CHIP_ID: %x \t ID_READ: %x\n", BME68X_CHIP_ID, data_id);
     }
     else{
         bme.chip_id = data_id;
@@ -166,8 +169,9 @@ int main() {
     rslt_api = bme68x_set_heatr_conf(BME68X_FORCED_MODE, &heatr_conf, &bme);
     check_rslt_api(rslt_api, "bme68x_set_heatr_conf");
 
-    uint16_t loops = 30;
-    while(loops >= 0){
+    uint32_t old_time = to_ms_since_boot(get_absolute_time()); //time in ms
+    uint32_t current_time;
+    while(1){
         rslt_api = bme68x_set_op_mode(BME68X_FORCED_MODE, &bme); 
         check_rslt_api(rslt_api, "bme68x_set_op_mode");
 
@@ -187,6 +191,9 @@ int main() {
         /*
             input variables for the BSEC API
         */
+
+        print_raw_results(data);
+
         input[0].sensor_id = BSEC_INPUT_GASRESISTOR;
         input[0].signal = data.gas_resistance;
         input[0].time_stamp= time_us;
@@ -208,62 +215,87 @@ int main() {
             }
             printf("\n");
         }
-        loops -= 1;
-        //sensor goes automatically to sleep
+
+        /*check time to save state every 10 minutes*/
+        current_time = to_ms_since_boot(get_absolute_time());
+        if(current_time - old_time >= 600000){//10 minutes in ms
+            //led on, signals writing
+            gpio_put(PICO_DEFAULT_LED_PIN, 1);
+            //mount the fs 
+            if (pico_mount(false) != LFS_ERR_OK) {
+                printf("Error mounting FS\n");
+                blink();
+            }
+            //open the file in write mode, no create because it should've been created already
+            state_file = pico_open(state_file_name, LFS_O_WRONLY);
+            check_fs_error(state_file, "Error opening state file write"); 
+            //get the state file
+            rslt_bsec = bsec_get_state(0, serialized_state, n_serialized_state_max, work_buffer_state, n_work_buffer_size, &n_serialized_state);
+            check_rslt_bsec(rslt_bsec, "BSEC_GET_STATE");
+            //write the file and flush
+            rslt_fs = pico_write(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
+            check_fs_error(rslt_fs, "Error writing the file");
+            pico_fflush(state_file);
+            //log the number of bytes written
+            int pos = pico_lseek(state_file, 0, LFS_SEEK_CUR);
+            printf("Written %d byte for file %s\n", pos, state_file);
+            //rewind the pointer to the beginning of the file just to be sure
+            rslt_fs = pico_rewind(state_file);
+            check_fs_error(state_file, "Error while rewinding state file");
+            //close the file
+            rslt_fs = pico_close(state_file);
+            //unmount the fs
+            pico_unmount();
+
+            //turn off the led, system can be shut down 
+            gpio_put(PICO_DEFAULT_LED_PIN, 0);
+            old_time = current_time;
+        }
+
+        //wait 10 seconds until next reading
         sleep_ms(10000);
+        
     }
-
-    rslt_bsec = bsec_get_state(0, serialized_state, n_serialized_state_max, work_buffer_state, n_work_buffer_size, &n_serialized_state);
-    check_rslt_bsec(rslt_bsec, "BSEC_GET_STATE");
-
-    rslt_fs = pico_write(state_file, serialized_state, BSEC_MAX_PROPERTY_BLOB_SIZE*sizeof(uint8_t));
-    check_fs_error(rslt_fs, "Error writing the file");
-    pico_fflush(state_file);
-	
-    int pos = pico_lseek(state_file, 0, LFS_SEEK_CUR);
-    printf("Written %d byte for file %s\n", pos, state_file);
-
-    rslt_fs = pico_close(state_file);
-    check_fs_error(rslt_fs, "Error closing the file");
-
-    sleep_ms(1000);
-    pico_unmount();
-    gpio_put(PICO_DEFAULT_LED_PIN, 1);
-
     /*rslt_bsec = bsec_get_configuration(0, serialized_settings, n_serialized_settings_max, work_buffer, n_work_buffer, &n_serialized_settings);
     check_rslt_bsce(rslt_bsec, "BSEC_GET_CONFIGURATION"); */  
+}
+//utility to print raw results
+void print_raw_results(struct bme68x_data data){
+    printf("Raw Temperature[°C]: %.2f\n", data.temperature);
+    printf("Raw Pressure[Pa]: %.2f\n", data.pressure);
+    printf("Raw Humidity[%%Rh]: %2.f\n", data.humidity);
+    printf("Raw Resistance[Ohm]: %.4f\n", data.gas_resistance);
 
 }
-
 //utility to print results
 void print_results(int id, float signal, int accuracy){
     switch(id){
         case BSEC_OUTPUT_IAQ:
-            printf("IAQ\t | Accuracy\n");
-            printf("%.2f\t | %d \n", signal, accuracy);
+            printf("IAQ   Accuracy\n");
+            printf("%.2f  %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_STATIC_IAQ:
             printf("STATIC IAQ\n");
             break;
         case BSEC_OUTPUT_CO2_EQUIVALENT:
-            printf("CO2[ppm]\t | Accuracy\n");
-            printf("%.2f\t | %d \n", signal, accuracy);
+            printf("CO2[ppm]  Accuracy\n");
+            printf("%.2f   %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_RAW_TEMPERATURE:
-                printf("Temperature[°C]\t | Accuracy\n");
-                printf("%.2f\t | %d \n", signal, accuracy);
+                printf("Temperature[°C] \n");
+                printf("%.2f \n", signal);
             break;
         case BSEC_OUTPUT_RAW_HUMIDITY:
-                printf("Humidity[%%rH]\t | Accuracy\n");
-                printf("%.2f\t | %d \n", signal, accuracy);
+                printf("Humidity[%%rH] \n");
+                printf("%.2f\n", signal);
             break;
         case BSEC_OUTPUT_RAW_PRESSURE:
-                printf("Pressure[atm]\t | Accuracy\n");
-                printf("%.2f\t | %d \n", signal/101325, accuracy);
+                printf("Pressure[atm] \n");
+                printf("%.2f \n", signal/101325);
             break;
         case BSEC_OUTPUT_RAW_GAS:
-            printf("[Ohm]\t | Accuracy\n");
-            printf("%.2f\t | %d \n", signal, accuracy);
+            printf("[Ohm]    | Accuracy\n");
+            printf("%.2f     | %d \n", signal, accuracy);
             break;
         case BSEC_OUTPUT_BREATH_VOC_EQUIVALENT:
             printf("VOC\n");

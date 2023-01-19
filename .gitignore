@@ -3,3 +3,4 @@
 /includes/bsec/*.h
 /includes/bsec/*.a
 /includes/bsec/*.lib
+/bsec_use/*.log
