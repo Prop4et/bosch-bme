@@ -263,7 +263,7 @@ int main() {
 void print_raw_results(struct bme68x_data data){
     printf("Raw Temperature[°C]: %.2f\n", data.temperature);
     printf("Raw Pressure[Pa]: %.2f\n", data.pressure);
-    printf("Raw Humidity[%%Rh]: %2.f\n", data.humidity);
+    printf("Raw Humidity[%%Rh]: %.2f\n", data.humidity);
     printf("Raw Resistance[Ohm]: %.4f\n", data.gas_resistance);
 
 }
